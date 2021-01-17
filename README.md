@@ -15,7 +15,7 @@ Individuals/hobbyists: support continued maintenance and development via PayPal:
 alt="chat on Discord"></a>
 
 [![Build status](https://ci.appveyor.com/api/projects/status/qvqctcf8oss5bqh8?svg=true)](https://ci.appveyor.com/project/andreakarasho/classicuo)
-
+[![GitHub Actions Status](https://github.com/andreakarasho/ClassicUO/workflows/Build/badge.svg)](https://github.com/andreakarasho/ClassicUO/actions)
 
 # Introduction
 ClassicUO is an open source implementation of the Ultima Online Classic Client. This client is intended to emulate all standard client versions and is primarily tested against Ultima Online free shards.
@@ -180,7 +180,10 @@ The code itself has been written using the following projects as a reference:
 * [UltimaXNA](https://github.com/ZaneDubya/UltimaXNA)
 * [ServUO](https://github.com/servuo/servuo)
 
-This work is released under the GPLv3 license. This project does not distribute any copyrighted game assets. In order to run this client you'll need to legally obtain a copy of the Ultima Online Classic Client.
+Backend:
+* [FNA](https://github.com/FNA-XNA/FNA)
+
+This work is released under the BSD 4 license. This project does not distribute any copyrighted game assets. In order to run this client you'll need to legally obtain a copy of the Ultima Online Classic Client.
 Using a custom client to connect to official UO servers is strictly forbidden. We do not assume any responsibility of the usage of this client.
 
 Ultima Online(R) © 2020 Electronic Arts Inc. All Rights Reserved.

@@ -1,23 +1,32 @@
 ﻿#region license
 
-// Copyright (C) 2020 ClassicUO Development Community on Github
+// Copyright (c) 2021, andreakarasho
+// All rights reserved.
 // 
-// This project is an alternative client for the game Ultima Online.
-// The goal of this is to develop a lightweight client considering
-// new technologies.
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. All advertising materials mentioning features or use of this software
+//    must display the following acknowledgement:
+//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
+// 4. Neither the name of the copyright holder nor the
+//    names of its contributors may be used to endorse or promote products
+//    derived from this software without specific prior written permission.
 // 
-//  This program is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-// 
-//  This program is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-// 
-//  You should have received a copy of the GNU General Public License
-//  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endregion
 
@@ -48,9 +57,22 @@ namespace ClassicUO.Renderer
         private int _numSprites;
         private Matrix _projectionMatrix = new Matrix
         (
-            0f,                         //(float)( 2.0 / (double)viewport.Width ) is the actual value we will use
-            0.0f, 0.0f, 0.0f, 0.0f, 0f, //(float)( -2.0 / (double)viewport.Height ) is the actual value we will use
-            0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f
+            0f, //(float)( 2.0 / (double)viewport.Width ) is the actual value we will use
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            0f, //(float)( -2.0 / (double)viewport.Height ) is the actual value we will use
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            -1.0f,
+            1.0f,
+            0.0f,
+            1.0f
         );
         private readonly RasterizerState _rasterizerState;
         private SamplerState _sampler;
@@ -68,14 +90,11 @@ namespace ClassicUO.Renderer
             GraphicsDevice = device;
             _textureInfo = new Texture2D[MAX_SPRITES];
 
-            _vertexInfo = (PositionNormalTextureColor4*) Marshal.AllocHGlobal
-                (sizeof(PositionNormalTextureColor4) * MAX_SPRITES);
+            _vertexInfo = (PositionNormalTextureColor4*) Marshal.AllocHGlobal(sizeof(PositionNormalTextureColor4) * MAX_SPRITES);
 
-            _vertexBuffer = new DynamicVertexBuffer
-                (GraphicsDevice, typeof(PositionNormalTextureColor4), MAX_VERTICES, BufferUsage.WriteOnly);
+            _vertexBuffer = new DynamicVertexBuffer(GraphicsDevice, typeof(PositionNormalTextureColor4), MAX_VERTICES, BufferUsage.WriteOnly);
 
-            _indexBuffer = new IndexBuffer
-                (GraphicsDevice, IndexElementSize.SixteenBits, MAX_INDICES, BufferUsage.WriteOnly);
+            _indexBuffer = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, MAX_INDICES, BufferUsage.WriteOnly);
 
             _indexBuffer.SetData(GenerateIndexArray());
             _blendState = BlendState.AlphaBlend;
@@ -219,20 +238,23 @@ namespace ClassicUO.Renderer
                 float offsetY = baseOffset.Y + (curOffset.Y + cCrop.Y) * axisDirY;
 
 
-                Draw2D(textureValue,
-                       x + (int) offsetX,
-                       y + (int) offsetY,
-                       cGlyph.X,
-                       cGlyph.Y,
-                       cGlyph.Width,
-                       cGlyph.Height,
-                       ref color);
+                Draw2D
+                (
+                    textureValue,
+                    x + (int) offsetX,
+                    y + (int) offsetY,
+                    cGlyph.X,
+                    cGlyph.Y,
+                    cGlyph.Width,
+                    cGlyph.Height,
+                    ref color
+                );
 
                 curOffset.X += cKern.Y + cKern.Z;
             }
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawSprite(Texture2D texture, int x, int y, bool mirror, ref Vector3 hue)
         {
             EnsureSize();
@@ -334,7 +356,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawSpriteLand
         (
             Texture2D texture,
@@ -394,7 +416,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawSpriteRotated
         (
             Texture2D texture,
@@ -414,7 +436,7 @@ namespace ClassicUO.Renderer
             float hh = texture.Height * 0.5f;
 
 
-            float startX = x - (destX - 44 + ww);
+            float startX = x - (destX + ww);
             float startY = y - (destY + hh);
 
             float sin = (float) Math.Sin(angle);
@@ -478,7 +500,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawSpriteShadow(Texture2D texture, int x, int y, bool flip)
         {
             EnsureSize();
@@ -571,8 +593,7 @@ namespace ClassicUO.Renderer
                 vertex.TextureCoordinate3.Z = 0;
             }
 
-            vertex.Hue0.Z = vertex.Hue1.Z = vertex.Hue2.Z =
-                vertex.Hue3.Z = vertex.Hue0.X = vertex.Hue1.X = vertex.Hue2.X = vertex.Hue3.X = 0;
+            vertex.Hue0.Z = vertex.Hue1.Z = vertex.Hue2.Z = vertex.Hue3.Z = vertex.Hue0.X = vertex.Hue1.X = vertex.Hue2.X = vertex.Hue3.X = 0;
 
             vertex.Hue0.Y = vertex.Hue1.Y = vertex.Hue2.Y = vertex.Hue3.Y = ShaderHueTranslator.SHADER_SHADOW;
 
@@ -581,7 +602,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawCharacterSitted
         (
             Texture2D texture,
@@ -1060,7 +1081,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Draw2D(Texture2D texture, int x, int y, ref Vector3 hue)
         {
             EnsureSize();
@@ -1114,7 +1135,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Draw2D
         (
             Texture2D texture,
@@ -1179,7 +1200,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Draw2D
         (
             Texture2D texture,
@@ -1320,7 +1341,7 @@ namespace ClassicUO.Renderer
             return false;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Draw2D
         (
             Texture2D texture,
@@ -1382,7 +1403,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Draw2DTiled
         (
             Texture2D texture,
@@ -1411,7 +1432,18 @@ namespace ClassicUO.Renderer
                         rw = w;
                     }
 
-                    Draw2D(texture, x, y, 0, 0, rw, rh, ref hue);
+                    Draw2D
+                    (
+                        texture,
+                        x,
+                        y,
+                        0,
+                        0,
+                        rw,
+                        rh,
+                        ref hue
+                    );
+
                     w -= texture.Width;
                     x += texture.Width;
                 }
@@ -1423,7 +1455,7 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawRectangle
         (
             Texture2D texture,
@@ -1434,15 +1466,50 @@ namespace ClassicUO.Renderer
             ref Vector3 hue
         )
         {
-            Draw2D(texture, x, y, width, 1, ref hue);
-            Draw2D(texture, x + width, y, 1, height + 1, ref hue);
-            Draw2D(texture, x, y + height, width, 1, ref hue);
-            Draw2D(texture, x, y, 1, height, ref hue);
+            Draw2D
+            (
+                texture,
+                x,
+                y,
+                width,
+                1,
+                ref hue
+            );
+
+            Draw2D
+            (
+                texture,
+                x + width,
+                y,
+                1,
+                height + 1,
+                ref hue
+            );
+
+            Draw2D
+            (
+                texture,
+                x,
+                y + height,
+                width,
+                1,
+                ref hue
+            );
+
+            Draw2D
+            (
+                texture,
+                x,
+                y,
+                1,
+                height,
+                ref hue
+            );
 
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DrawLine
         (
             Texture2D texture,
@@ -1534,19 +1601,19 @@ namespace ClassicUO.Renderer
             return true;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Begin()
         {
             Begin(null, Matrix.Identity);
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Begin(Effect effect)
         {
             Begin(effect, Matrix.Identity);
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Begin(Effect customEffect, Matrix transform_matrix)
         {
             EnsureNotStarted();
@@ -1563,7 +1630,7 @@ namespace ClassicUO.Renderer
             _transformMatrix = transform_matrix;
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void End()
         {
             EnsureStarted();
@@ -1573,7 +1640,7 @@ namespace ClassicUO.Renderer
         }
 
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureSize()
         {
             EnsureStarted();
@@ -1584,7 +1651,7 @@ namespace ClassicUO.Renderer
             }
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool PushSprite(Texture2D texture)
         {
             if (texture == null || texture.IsDisposed)
@@ -1693,13 +1760,20 @@ namespace ClassicUO.Renderer
             effect.ApplyStates(matrix);
         }
 
-        [MethodImpl(256)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void InternalDraw(Texture texture, int baseSprite, int batchSize)
         {
             GraphicsDevice.Textures[0] = texture;
-            GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, baseSprite << 2,
-                                                 0, batchSize << 2,
-                                                 0, batchSize << 1);
+
+            GraphicsDevice.DrawIndexedPrimitives
+            (
+                PrimitiveType.TriangleList,
+                baseSprite << 2,
+                0,
+                batchSize << 2,
+                0,
+                batchSize << 1
+            );
         }
 
         public void EnableScissorTest(bool enable)
@@ -1756,11 +1830,7 @@ namespace ClassicUO.Renderer
                 hint = SetDataOptions.NoOverwrite;
             }
 
-            _vertexBuffer.SetDataPointerEXT
-            (
-                pos * PositionNormalTextureColor4.SIZE_IN_BYTES, (IntPtr) _vertexInfo,
-                len * PositionNormalTextureColor4.SIZE_IN_BYTES, hint
-            );
+            _vertexBuffer.SetDataPointerEXT(pos * PositionNormalTextureColor4.SIZE_IN_BYTES, (IntPtr) _vertexInfo, len * PositionNormalTextureColor4.SIZE_IN_BYTES, hint);
 
             _currentBufferPosition = pos + len;
 
@@ -1844,15 +1914,10 @@ namespace ClassicUO.Renderer
 
             private static readonly VertexDeclaration VertexDeclaration = new VertexDeclaration
             (
-                new VertexElement(0, VertexElementFormat.Vector3, VertexElementUsage.Position, 0), // position
-                new VertexElement
-                    (sizeof(float) * 3, VertexElementFormat.Vector3, VertexElementUsage.Normal, 0), // normal
-                new VertexElement
-                (
-                    sizeof(float) * 6, VertexElementFormat.Vector3, VertexElementUsage.TextureCoordinate, 0
-                ), // tex coord
-                new VertexElement
-                    (sizeof(float) * 9, VertexElementFormat.Vector3, VertexElementUsage.TextureCoordinate, 1) // hue
+                new VertexElement(0, VertexElementFormat.Vector3, VertexElementUsage.Position, 0),                          // position
+                new VertexElement(sizeof(float) * 3, VertexElementFormat.Vector3, VertexElementUsage.Normal, 0),            // normal
+                new VertexElement(sizeof(float) * 6, VertexElementFormat.Vector3, VertexElementUsage.TextureCoordinate, 0), // tex coord
+                new VertexElement(sizeof(float) * 9, VertexElementFormat.Vector3, VertexElementUsage.TextureCoordinate, 1)  // hue
             );
 
             public const int SIZE_IN_BYTES = sizeof(float) * 12 * 4;
@@ -1871,8 +1936,7 @@ namespace ClassicUO.Renderer
     {
         private static byte[] _isometricEffect, _xBREffect;
 
-        public static byte[] IsometricEffect => _isometricEffect ?? (_isometricEffect = GetResource
-            ("ClassicUO.shaders.IsometricWorld.fxc"));
+        public static byte[] IsometricEffect => _isometricEffect ?? (_isometricEffect = GetResource("ClassicUO.shaders.IsometricWorld.fxc"));
 
         public static byte[] xBREffect => _xBREffect ?? (_xBREffect = GetResource("ClassicUO.shaders.xBR.fxc"));
 
@@ -1880,8 +1944,7 @@ namespace ClassicUO.Renderer
         {
             get
             {
-                Stream stream = typeof(SpriteBatch).Assembly.GetManifestResourceStream
-                    ("Microsoft.Xna.Framework.Graphics.Effect.Resources.SpriteEffect.fxb");
+                Stream stream = typeof(SpriteBatch).Assembly.GetManifestResourceStream("Microsoft.Xna.Framework.Graphics.Effect.Resources.SpriteEffect.fxb");
 
                 using (MemoryStream ms = new MemoryStream())
                 {

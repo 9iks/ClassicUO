@@ -1,23 +1,32 @@
 ﻿#region license
 
-// Copyright (C) 2020 ClassicUO Development Community on Github
+// Copyright (c) 2021, andreakarasho
+// All rights reserved.
 // 
-// This project is an alternative client for the game Ultima Online.
-// The goal of this is to develop a lightweight client considering
-// new technologies.
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. All advertising materials mentioning features or use of this software
+//    must display the following acknowledgement:
+//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
+// 4. Neither the name of the copyright holder nor the
+//    names of its contributors may be used to endorse or promote products
+//    derived from this software without specific prior written permission.
 // 
-//  This program is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-// 
-//  This program is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-// 
-//  You should have received a copy of the GNU General Public License
-//  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endregion
 
@@ -25,343 +34,184 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ClassicUO.Utility;
-using static System.String;
 
 namespace ClassicUO.Network
 {
-    internal sealed class Packet : PacketBase
+    unsafe ref struct BufferReaderUnmanaged<T> where T : unmanaged
     {
-        private static readonly StringBuilder _sb = new StringBuilder();
-        private byte[] _data;
-
-        public Packet(byte[] data, int length)
+        public BufferReaderUnmanaged(T* data, int length)
         {
-            _data = data;
+            ptr = data;
             Length = length;
-            IsDynamic = PacketsTable.GetPacketLength(ID) < 0;
         }
 
-        public override byte this[int index]
+        public T* ptr;
+        public int Length;
+
+        public T this[int index] => ptr[index];
+    }
+
+    unsafe ref struct BufferWrapper<T> where T : struct
+    {
+        public BufferWrapper(T[] data, int length)
         {
-            [MethodImpl(256)]
-            get
-            {
-                if (index < 0 || index >= Length)
-                {
-                    throw new ArgumentOutOfRangeException("index");
-                }
-
-                return _data[index];
-            }
-            [MethodImpl(256)]
-            set
-            {
-                if (index < 0 || index >= Length)
-                {
-                    throw new ArgumentOutOfRangeException("index");
-                }
-
-                _data[index] = value;
-                IsChanged = true;
-            }
+            ptr = data;
+            Length = length;
         }
 
-        public override int Length { get; }
-
-        public bool IsChanged { get; private set; }
-
-        public bool Filter { get; set; }
-
-        public override ref byte[] ToArray()
+        public BufferWrapper(T[] data) : this(data, data.Length)
         {
-            return ref _data;
         }
 
-        [MethodImpl(256)]
-        public void MoveToData()
+
+        public T[] ptr;
+        public int Length;
+
+        public ref T this[int index] => ref ptr[index];
+    }
+
+    ref struct PacketBufferReader
+    {
+        private readonly BufferWrapper<byte> _buffer;
+
+
+        public PacketBufferReader(byte[] data) : this(data, data.Length)
         {
-            Seek(IsDynamic ? 3 : 1);
         }
 
-        [MethodImpl(256)]
-        protected override bool EnsureSize(int length)
+        public PacketBufferReader(byte[] data, int length)
         {
-            return length < 0 || Position + length > Length;
+            _buffer = new BufferWrapper<byte>(data, length);
+            Position = 0;
+            Length = length;
         }
 
-        [MethodImpl(256)]
-        public byte ReadByte()
-        {
-            if (EnsureSize(1))
-            {
-                return 0;
-            }
 
-            return _data[Position++];
-        }
+        public int Position;
+        public int Length;
 
-        public sbyte ReadSByte()
-        {
-            return (sbyte) ReadByte();
-        }
+        public int Remains => Length - Position;
+        public ref byte this[int index] => ref _buffer[index];
+        public byte[] Buffer => _buffer.ptr;
+        public byte ID => this[0];
 
-        public bool ReadBool()
-        {
-            return ReadByte() != 0;
-        }
 
-        public ushort ReadUShort()
-        {
-            if (EnsureSize(2))
-            {
-                return 0;
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public byte ReadByte() => Position + 1 > Length ? (byte) 0 : _buffer[Position++];
 
-            return (ushort) ((ReadByte() << 8) | ReadByte());
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public sbyte ReadSByte() => (sbyte) ReadByte();
 
-        public uint ReadUInt()
-        {
-            if (EnsureSize(4))
-            {
-                return 0;
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ReadBool() => ReadByte() != 0;
 
-            return (uint) ((ReadByte() << 24) | (ReadByte() << 16) | (ReadByte() << 8) | ReadByte());
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ushort ReadUShort() => (ushort) (Position + 2 > Length ? 0 : ((ReadByte() << 8) | ReadByte()));
 
-        public ulong ReadULong()
-        {
-            if (EnsureSize(8))
-            {
-                return 0;
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public uint ReadUInt() => (uint) (Position + 4 > Length ? 0 : ((ReadByte() << 24) | (ReadByte() << 16) | (ReadByte() << 8) | ReadByte()));
 
-            return (ulong) ((ReadByte() << 56) | (ReadByte() << 48) | (ReadByte() << 40) | (ReadByte() << 32) |
-                            (ReadByte() << 24) | (ReadByte() << 16) | (ReadByte() << 8) | ReadByte());
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ReadASCII()
         {
-            if (EnsureSize(1))
+            if (Position + 1 > Length)
             {
-                return Empty;
+                return string.Empty;
             }
 
-            _sb.Clear();
+            StringBuilder sb = new StringBuilder();
 
             char c;
 
             while ((c = (char) ReadByte()) != 0)
             {
-                _sb.Append(c);
+                sb.Append(c);
             }
 
-            return _sb.ToString();
+            return sb.ToString();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ReadASCII(int length)
         {
-            if (EnsureSize(length))
-            {
-                return Empty;
-            }
-
             if (Position + length > Length)
             {
-                length = Length - Position - 1;
+                return string.Empty;
             }
 
+            StringBuilder sb = new StringBuilder();
 
-            _sb.Clear();
-
-            if (length <= 0)
+            for (int i = 0; i < length; ++i)
             {
-                return Empty;
-            }
+                char b = (char) ReadByte();
 
-            for (int i = 0; i < length; i++)
-            {
-                char c = (char) ReadByte();
-
-                if (c == '\0')
+                if (b == '\0')
                 {
                     Skip(length - i - 1);
 
                     break;
                 }
 
-                _sb.Append(c);
+                sb.Append(b);
             }
 
-            return _sb.ToString();
+            return sb.ToString();
         }
 
-        public string ReadUTF8StringSafe()
-        {
-            _sb.Clear();
-
-            if (Position >= Length)
-            {
-                return Empty;
-            }
-
-            int index = Position;
-
-            while (index < Length)
-            {
-                byte b = _data[index++];
-
-                if (b == 0)
-                {
-                    break;
-                }
-            }
-
-            string s = Encoding.UTF8.GetString(_data, Position, index - Position - 1);
-
-            Seek(index);
-
-            index = 0;
-
-            for (int i = 0; i < s.Length && StringHelper.IsSafeChar(s[i]); i++, index++)
-            {
-            }
-
-            if (index == s.Length)
-            {
-                return s;
-            }
-
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (StringHelper.IsSafeChar(s[i]))
-                {
-                    _sb.Append(s[i]);
-                }
-            }
-
-            return _sb.ToString();
-        }
-
-        public string ReadUTF8StringSafe(int length)
-        {
-            _sb.Clear();
-
-            if (length <= 0 || EnsureSize(length))
-            {
-                return Empty;
-            }
-
-            if (Position + length > Length)
-            {
-                length = Length - Position - 1;
-            }
-
-            int index = Position;
-            int toread = Position + length;
-
-            while (index < toread)
-            {
-                byte b = _data[index++];
-
-                if (b == 0)
-                {
-                    break;
-                }
-            }
-
-            string s = Encoding.UTF8.GetString(_data, Position, length - 1);
-
-            Skip(length);
-
-            index = 0;
-
-            for (int i = 0; i < s.Length && StringHelper.IsSafeChar(s[i]); i++, index++)
-            {
-            }
-
-            if (index == s.Length)
-            {
-                return s;
-            }
-
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (StringHelper.IsSafeChar(s[i]))
-                {
-                    _sb.Append(s[i]);
-                }
-            }
-
-            return _sb.ToString();
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ReadUnicode()
         {
-            if (EnsureSize(2))
+            if (Position + 1 > Length)
             {
-                return Empty;
+                return string.Empty;
             }
 
             int start = Position;
-            int end = 0;
 
-            while (Position < Length)
+            while (ReadUShort() != 0)
             {
-                if (ReadUShort() == 0)
-                {
-                    break;
-                }
-
-                end += 2;
             }
 
-            return end == 0 ? Empty : Encoding.BigEndianUnicode.GetString(_data, start, end);
+            return Position == start ? string.Empty : Encoding.BigEndianUnicode.GetString(_buffer.ptr, start, Position - start);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ReadUnicode(int length)
         {
-            if (EnsureSize(length))
+            if (Position + length > Length)
             {
-                return Empty;
-            }
-
-            if (Position + length >= Length)
-            {
-                length = Length - Position - 2;
+                return string.Empty;
             }
 
             int start = Position;
             Position += length;
 
-            return length <= 0 ? Empty : Encoding.BigEndianUnicode.GetString(_data, start, length);
+            return length <= 0 ? string.Empty : Encoding.BigEndianUnicode.GetString(_buffer.ptr, start, length);
         }
 
-        public byte[] ReadArray(int count)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ReadUnicodeReversed()
         {
-            if (EnsureSize(count))
+            if (Position + 2 > Length)
             {
-                return null;
+                return string.Empty;
             }
 
-            byte[] array = new byte[count];
-            Buffer.BlockCopy(_data, Position, array, 0, count);
-            Position += count;
+            int start = Position;
 
-            return array;
+            while (ReadUShortReversed() != 0)
+            {
+            }
+
+            return start == Position ? string.Empty : Encoding.Unicode.GetString(_buffer.ptr, start, Position - start);
         }
 
-        public string ReadUnicodeReversed(int length, bool safe = true)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ReadUnicodeReversed(int length)
         {
-            if (EnsureSize(length))
+            if (Position + length > Length)
             {
-                return Empty;
-            }
-
-            if (Position + length >= Length)
-            {
-                length = Length - Position - 2;
+                return string.Empty;
             }
 
             int start = Position;
@@ -377,40 +227,145 @@ namespace ClassicUO.Network
 
             Seek(start + length);
 
-            return i <= 0 ? Empty : Encoding.Unicode.GetString(_data, start, i);
+            return i <= 0 ? string.Empty : Encoding.Unicode.GetString(_buffer.ptr, start, i);
         }
 
-        public string ReadUnicodeReversed()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ushort ReadUShortReversed() =>
+            (ushort) (Position + 2 > Length ? 0 : (ReadByte() | (ReadByte() << 8)));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ReadUTF8StringSafe()
         {
-            if (EnsureSize(2))
+            if (Position >= Length)
             {
-                return Empty;
+                return string.Empty;
             }
 
-            int start = Position;
-            int end = 0;
+            int index = Position;
 
-            while (Position < Length)
+            while (index < Length)
             {
-                if (ReadUShortReversed() == 0)
+                byte b = _buffer[index++];
+
+                if (b == 0)
                 {
                     break;
                 }
-
-                end += 2;
             }
 
-            return end == 0 ? Empty : Encoding.Unicode.GetString(_data, start, end);
-        }
+            string s = Encoding.UTF8.GetString(_buffer.ptr, Position, index - Position - 1);
 
-        public ushort ReadUShortReversed()
-        {
-            if (EnsureSize(2))
+            Seek(index);
+
+            index = 0;
+
+            for (int i = 0; i < s.Length && StringHelper.IsSafeChar(s[i]); i++, index++)
             {
-                return 0;
             }
 
-            return (ushort) (ReadByte() | (ReadByte() << 8));
+            if (index == s.Length)
+            {
+                return s;
+            }
+
+            StringBuilder sb = new StringBuilder(s.Length);
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (StringHelper.IsSafeChar(s[i]))
+                {
+                    sb.Append(s[i]);
+                }
+            }
+
+            return sb.ToString();
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ReadUTF8StringSafe(int length)
+        {
+            if (Position + length > Length)
+            {
+                return string.Empty;
+            }
+
+            int index = Position;
+            int toRead = Position + length;
+
+            while (index < toRead)
+            {
+                byte b = _buffer[index++];
+
+                if (b == 0)
+                {
+                    break;
+                }
+            }
+
+            string s = Encoding.UTF8.GetString(_buffer.ptr, Position, length - 1);
+
+            Skip(length);
+
+            index = 0;
+
+            for (int i = 0; i < s.Length && StringHelper.IsSafeChar(s[i]); i++, index++)
+            {
+            }
+
+            if (index == s.Length)
+            {
+                return s;
+            }
+
+            StringBuilder sb = new StringBuilder(s.Length);
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (StringHelper.IsSafeChar(s[i]))
+                {
+                    sb.Append(s[i]);
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public byte[] ReadArray(int count)
+        {
+            byte[] data = new byte[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                data[i] = ReadByte();
+            }
+
+            return data;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArraySegment<byte> Slice(int count)
+        {
+            return Slice(Position, Math.Min(count, Length - 1));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArraySegment<byte> Slice(int start, int count)
+        {
+            if (count >= Length)
+            {
+                count = Length - 1;
+            }
+
+            return new ArraySegment<byte>(_buffer.ptr, start, count);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Skip(int length) => Position += length;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Seek(int position) => Position = position;
     }
 }
